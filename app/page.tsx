@@ -2,6 +2,7 @@ import Hero from '@/components/Hero'
 import Features from '@/components/Features'
 import Chatbot from '@/components/Chatbot'
 import Benefits from '@/components/Benefits'
+import WhatYouGet from '@/components/WhatYouGet'
 import LeadForm from '@/components/LeadForm'
 import CTA from '@/components/CTA'
 import AgentSetup from '@/components/AgentSetup'
@@ -12,6 +13,7 @@ export default function Home() {
       <AgentSetup />
       <Hero />
       <Features />
+      <WhatYouGet />
       <Chatbot />
       <Benefits />
       <LeadForm />

@@ -25,19 +25,35 @@ interface LeadData {
 
 export async function saveLeadToGoogleSheets(leadData: LeadData): Promise<boolean> {
   try {
-    const credentialsPath = process.env.GOOGLE_SHEETS_CREDENTIALS
     const sheetId = process.env.GOOGLE_SHEET_ID
 
-    if (!credentialsPath || !sheetId) {
-      console.warn('Google Sheets credentials not configured')
+    if (!sheetId) {
+      console.warn('Google Sheets ID not configured')
       return false
     }
 
-    // Load credentials
-    const auth = new google.auth.GoogleAuth({
-      keyFile: credentialsPath,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    })
+    // Load credentials - support both file path and JSON string (for Vercel)
+    let auth: any
+    
+    if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
+      // Vercel: credentials as JSON string in environment variable
+      try {
+        const credentials = JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS)
+        auth = new google.auth.GoogleAuth({
+          credentials: credentials,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        })
+      } catch (error) {
+        // If parsing fails, try as file path (local development)
+        auth = new google.auth.GoogleAuth({
+          keyFile: process.env.GOOGLE_SHEETS_CREDENTIALS,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        })
+      }
+    } else {
+      console.warn('Google Sheets credentials not configured')
+      return false
+    }
 
     const sheets = google.sheets({ version: 'v4', auth })
 
@@ -105,18 +121,35 @@ export async function saveLeadToGoogleSheets(leadData: LeadData): Promise<boolea
  */
 export async function initializeGoogleSheet(): Promise<boolean> {
   try {
-    const credentialsPath = process.env.GOOGLE_SHEETS_CREDENTIALS
     const sheetId = process.env.GOOGLE_SHEET_ID
 
-    if (!credentialsPath || !sheetId) {
-      console.warn('Google Sheets credentials not configured')
+    if (!sheetId) {
+      console.warn('Google Sheets ID not configured')
       return false
     }
 
-    const auth = new google.auth.GoogleAuth({
-      keyFile: credentialsPath,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    })
+    // Load credentials - support both file path and JSON string (for Vercel)
+    let auth: any
+    
+    if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
+      // Vercel: credentials as JSON string in environment variable
+      try {
+        const credentials = JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS)
+        auth = new google.auth.GoogleAuth({
+          credentials: credentials,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        })
+      } catch (error) {
+        // If parsing fails, try as file path (local development)
+        auth = new google.auth.GoogleAuth({
+          keyFile: process.env.GOOGLE_SHEETS_CREDENTIALS,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        })
+      }
+    } else {
+      console.warn('Google Sheets credentials not configured')
+      return false
+    }
 
     const sheets = google.sheets({ version: 'v4', auth })
 

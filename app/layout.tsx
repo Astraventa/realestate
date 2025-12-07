@@ -7,6 +7,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'AI Property Sales Assistant | 24/7 Lead Generation',
   description: 'Capture leads even while you sleep. Auto-qualify buyers, suggest properties instantly, and forward leads to WhatsApp in 1 second.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({

@@ -75,21 +75,42 @@ export default function Chatbot() {
 
   // Extract data from user input and AI response
   const extractDataFromResponse = (userInput: string, aiResponse: string) => {
-    const lowerInput = userInput.toLowerCase()
+    const lowerInput = userInput.toLowerCase().trim()
+    
+    // Try to extract name - look for common name patterns (not greetings, not numbers, not locations)
+    if (!leadData.name) {
+      // Skip if it's a greeting, location, or number
+      const isGreeting = /^(hi|hello|hey|salam|assalam)/i.test(lowerInput)
+      const isLocation = lowerInput.includes('lahore') || lowerInput.includes('karachi') || lowerInput.includes('islamabad') || lowerInput.includes('dha') || lowerInput.includes('bahria') || lowerInput.includes('gulberg')
+      const isNumber = /^\+?92\d{10}$/.test(userInput.replace(/\s/g, '')) || /^\d+$/.test(userInput.replace(/\s/g, ''))
+      const isBudget = lowerInput.includes('crore') || lowerInput.includes('lac') || lowerInput.includes('lakh')
+      
+      // If it's a reasonable name (2-50 chars, not greeting/location/number/budget)
+      if (!isGreeting && !isLocation && !isNumber && !isBudget && userInput.length >= 2 && userInput.length <= 50) {
+        // Check if AI response asks for name (indicates this might be name)
+        if (aiResponse.toLowerCase().includes('name') || messages.length <= 2) {
+          setLeadData(prev => ({ ...prev, name: userInput.trim() }))
+        }
+      }
+    }
     
     // Try to extract budget
     if (!leadData.budget && (lowerInput.includes('crore') || lowerInput.includes('lac') || lowerInput.includes('lakh') || /\d+\s*(crore|lac|lakh)/i.test(userInput))) {
-      setLeadData(prev => ({ ...prev, budget: userInput }))
-    }
-    
-    // Try to extract name (if it's the first question)
-    if (!leadData.name && currentQuestion === 0 && userInput.length > 2 && userInput.length < 50) {
-      setLeadData(prev => ({ ...prev, name: userInput }))
+      // Extract just the budget part
+      const budgetMatch = userInput.match(/(\d+[\s.]*\d*)\s*(crore|lac|lakh|cr)/i)
+      if (budgetMatch) {
+        setLeadData(prev => ({ ...prev, budget: budgetMatch[0] }))
+      } else {
+        setLeadData(prev => ({ ...prev, budget: userInput }))
+      }
     }
     
     // Try to extract area
-    if (!leadData.area && (lowerInput.includes('dha') || lowerInput.includes('bahria') || lowerInput.includes('gulberg') || lowerInput.includes('model town') || lowerInput.includes('johar'))) {
-      setLeadData(prev => ({ ...prev, area: userInput }))
+    if (!leadData.area) {
+      const areaKeywords = ['dha', 'bahria', 'gulberg', 'model town', 'johar', 'faisalabad', 'karachi', 'islamabad', 'lahore']
+      if (areaKeywords.some(keyword => lowerInput.includes(keyword))) {
+        setLeadData(prev => ({ ...prev, area: userInput.trim() }))
+      }
     }
     
     // Try to extract property type
@@ -110,9 +131,13 @@ export default function Chatbot() {
       }
     }
     
-    // Try to extract WhatsApp
+    // Try to extract WhatsApp (must be a phone number)
     if (!leadData.whatsapp && (userInput.includes('+92') || userInput.includes('923') || /^\+?92\d{10}$/.test(userInput.replace(/\s/g, '')))) {
-      setLeadData(prev => ({ ...prev, whatsapp: userInput }))
+      // Clean the number
+      const cleanNumber = userInput.replace(/\s/g, '').replace(/[^\d+]/g, '')
+      if (cleanNumber.startsWith('+92') || cleanNumber.startsWith('92')) {
+        setLeadData(prev => ({ ...prev, whatsapp: cleanNumber }))
+      }
     }
   }
 
@@ -333,14 +358,30 @@ export default function Chatbot() {
   }
 
   const handleLeadSubmission = async () => {
+    // Prevent duplicate submissions
+    if (showActionButtons) {
+      console.log('Lead already submitted, skipping duplicate')
+      return
+    }
+
     // Normalize all data before sending
+    // If name is missing but WhatsApp exists, use a default or WhatsApp number
+    let finalName = leadData.name || ''
+    if (!finalName && leadData.whatsapp) {
+      // If no name provided, use "Client" + last 4 digits of WhatsApp
+      const lastDigits = leadData.whatsapp.slice(-4)
+      finalName = `Client ${lastDigits}`
+    } else if (!finalName) {
+      finalName = 'Not Provided'
+    }
+
     const finalLeadData = {
-      name: leadData.name || '',
+      name: finalName,
       budget: leadData.budget || '',
       area: leadData.area || '',
       propertyType: leadData.propertyType ? normalizeInput('propertyType', leadData.propertyType) : '',
       status: leadData.status ? normalizeInput('status', leadData.status) : '',
-      whatsapp: leadData.whatsapp || input,
+      whatsapp: leadData.whatsapp || '',
     }
 
     try {
@@ -472,17 +513,34 @@ export default function Chatbot() {
                   </a>
                   {(() => {
                     const agentWhatsApp = getAgentWhatsAppNumber()
-                    return agentWhatsApp ? (
-                      <a
-                        href={generateWhatsAppLinkForAgent(agentWhatsApp, submittedLeadData)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        Get WhatsApp Notification
-                      </a>
-                    ) : null
+                    if (agentWhatsApp) {
+                      return (
+                        <a
+                          href={generateWhatsAppLinkForAgent(agentWhatsApp, submittedLeadData)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Get WhatsApp Notification
+                        </a>
+                      )
+                    } else {
+                      return (
+                        <button
+                          onClick={() => {
+                            // Trigger agent setup modal
+                            localStorage.removeItem('agent_whatsapp_number')
+                            window.location.reload()
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors text-sm font-medium cursor-pointer"
+                          title="Click to set up WhatsApp notifications"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Setup WhatsApp (Click)
+                        </button>
+                      )
+                    }
                   })()}
                   {submittedLeadData.whatsapp && (
                     <a

@@ -79,20 +79,9 @@ export async function POST(request: NextRequest) {
       throw lastError || new Error('All models failed')
     }
 
-    // If all data collected, also save to sheet
-    if (isComplete && leadData) {
-      try {
-        const { saveLeadToGoogleSheets } = await import('@/lib/googleSheets')
-        await saveLeadToGoogleSheets({
-          ...leadData,
-          timestamp: new Date().toISOString(),
-        })
-        console.log('✅ Lead automatically saved to Google Sheets')
-      } catch (sheetsError) {
-        console.warn('Failed to save to Google Sheets:', sheetsError)
-        // Continue anyway
-      }
-    }
+    // NOTE: We don't save here to avoid duplicates
+    // The Chatbot component will call /api/leads when isComplete is true
+    // This prevents double-saving the same lead
 
     return NextResponse.json(
       {

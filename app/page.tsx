@@ -1,6 +1,6 @@
 import Hero from '@/components/Hero'
 import Features from '@/components/Features'
-import Chatbot from '@/components/Chatbot'
+import ChatbotAIVercel from '@/components/ChatbotAIVercel'
 import Benefits from '@/components/Benefits'
 import WhatYouGet from '@/components/WhatYouGet'
 import LeadForm from '@/components/LeadForm'
@@ -14,7 +14,7 @@ export default function Home() {
       <Hero />
       <Features />
       <WhatYouGet />
-      <Chatbot />
+      <ChatbotAIVercel />
       <Benefits />
       <LeadForm />
       <CTA />

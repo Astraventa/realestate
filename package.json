@@ -9,12 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.7",
+    "@ai-sdk/openai": "^3.0.5",
+    "ai": "^6.0.13",
+    "framer-motion": "^10.16.16",
+    "googleapis": "^126.0.1",
+    "lucide-react": "^0.294.0",
     "next": "^14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "googleapis": "^126.0.1",
-    "lucide-react": "^0.294.0",
-    "framer-motion": "^10.16.16"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
@@ -26,4 +30,3 @@
     "typescript": "^5.3.3"
   }
 }
-

@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { saveLeadToGoogleSheets } from '@/lib/googleSheets'
 import { generateWhatsAppLinkForAgent } from '@/lib/whatsapp'
+import { sendTelegramNotification, sendPriorityTelegramAlert } from '@/lib/telegram'
 import { agentConfig } from '@/config/agent'
+
+// Helper function to parse budget string to number
+function parseBudget(budget?: string): number | null {
+  if (!budget) return null
+  
+  const clean = budget.toLowerCase().replace(/[^\d.]/g, '')
+  const num = parseFloat(clean)
+  if (isNaN(num)) return null
+
+  if (budget.toLowerCase().includes('crore') || budget.toLowerCase().includes('cr')) {
+    return num * 10000000
+  }
+  if (budget.toLowerCase().includes('lac') || budget.toLowerCase().includes('lakh')) {
+    return num * 100000
+  }
+  return num
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,12 +30,35 @@ export async function POST(request: NextRequest) {
     // Log the lead data
     console.log('New Lead Received:', leadWithTimestamp)
 
-    // Try to save to Google Sheets (if configured)
+    // Save to Google Sheets (if configured)
+    let sheetsSaved = false
     try {
-      await saveLeadToGoogleSheets(leadWithTimestamp)
+      sheetsSaved = await saveLeadToGoogleSheets(leadWithTimestamp)
+      if (sheetsSaved) {
+        console.log('✅ Lead saved to Google Sheets')
+      }
     } catch (sheetsError) {
-      // Continue even if Google Sheets fails (for demo purposes)
-      console.warn('Google Sheets save failed (continuing anyway):', sheetsError)
+      console.warn('⚠️ Google Sheets save failed (continuing anyway):', sheetsError)
+    }
+
+    // Send Telegram notification (INSTANT - NEW!)
+    let telegramSent = false
+    try {
+      // Check if this is a high-value lead (budget > 1 Crore)
+      const budgetValue = parseBudget(leadData.budget)
+      const isHighValue = budgetValue && budgetValue >= 10000000 // 1 Crore
+
+      if (isHighValue) {
+        // Send priority alert for hot leads
+        telegramSent = await sendPriorityTelegramAlert(leadWithTimestamp, 'HOT')
+        console.log('🔥 Hot lead - Priority Telegram alert sent')
+      } else {
+        // Send normal notification
+        telegramSent = await sendTelegramNotification(leadWithTimestamp)
+        console.log('✅ Telegram notification sent')
+      }
+    } catch (telegramError) {
+      console.warn('⚠️ Telegram notification failed (continuing anyway):', telegramError)
     }
 
     // Generate WhatsApp notification link (FREE - uses wa.me)
@@ -25,10 +66,6 @@ export async function POST(request: NextRequest) {
       agentConfig.whatsapp,
       leadWithTimestamp
     )
-
-    // TODO: Integrate with Notion API
-    // TODO: Integrate with Telegram Bot
-    // TODO: Integrate with WhatsApp Business API (for automatic sending)
 
     // For demo purposes, we'll return success
     // In production, you would also:
@@ -41,8 +78,12 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Lead captured successfully',
         data: leadWithTimestamp,
-        whatsappLink: whatsappNotificationLink, // Agent can click this link
+        whatsappLink: whatsappNotificationLink,
         sheetUrl: agentConfig.sheetUrl,
+        notifications: {
+          googleSheets: sheetsSaved,
+          telegram: telegramSent,
+        },
       },
       { status: 200 }
     )

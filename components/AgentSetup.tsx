@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MessageCircle, CheckCircle } from 'lucide-react'
+import { X, MessageCircle, CheckCircle, Send, Bell, Zap } from 'lucide-react'
 
 const STORAGE_KEY = 'agent_whatsapp_number'
 const TELEGRAM_STORAGE_KEY = 'agent_telegram_chat_id'
@@ -15,6 +15,7 @@ export default function AgentSetup() {
   const [agentName, setAgentName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isConfigured, setIsConfigured] = useState(false)
+  const [showTelegramGuide, setShowTelegramGuide] = useState(false)
 
   useEffect(() => {
     // Check if agent has already configured
@@ -179,30 +180,136 @@ export default function AgentSetup() {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor="agent-telegram"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Telegram Chat ID (Optional - for instant notifications)
-                    </label>
-                    <input
-                      type="text"
-                      id="agent-telegram"
-                      value={telegramChatId}
-                      onChange={(e) => setTelegramChatId(e.target.value)}
-                      placeholder="123456789"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-800">
-                        <strong>How to get your Chat ID:</strong>
-                      </p>
-                      <ol className="mt-1 text-xs text-blue-700 space-y-1 ml-4 list-decimal">
-                        <li>Open Telegram and search: <code className="bg-blue-100 px-1 rounded">@userinfobot</code></li>
-                        <li>Send: <code className="bg-blue-100 px-1 rounded">/start</code></li>
-                        <li>Copy your ID number and paste above</li>
-                      </ol>
+                    <div className="flex items-center justify-between mb-2">
+                      <label
+                        htmlFor="agent-telegram"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Telegram Chat ID (Optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowTelegramGuide(!showTelegramGuide)}
+                        className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center gap-1"
+                      >
+                        <Bell className="w-3 h-3" />
+                        {showTelegramGuide ? 'Hide Guide' : 'How to get?'}
+                      </button>
                     </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Send className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <input
+                        type="text"
+                        id="agent-telegram"
+                        value={telegramChatId}
+                        onChange={(e) => setTelegramChatId(e.target.value)}
+                        placeholder="123456789"
+                        className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    {/* Benefits Banner */}
+                    {!telegramChatId && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg"
+                      >
+                        <div className="flex items-start gap-2">
+                          <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-900">
+                              Get Instant Telegram Notifications!
+                            </p>
+                            <p className="text-xs text-blue-700 mt-0.5">
+                              Receive lead alerts in 3 seconds • 100% FREE • Never miss a buyer!
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Step-by-Step Guide */}
+                    <AnimatePresence>
+                      {showTelegramGuide && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg overflow-hidden"
+                        >
+                          <p className="text-sm font-semibold text-blue-900 mb-3">
+                            📢 How to Get Your Telegram Chat ID:
+                          </p>
+                          <ol className="space-y-3">
+                            <li className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                1
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-blue-900">Open Telegram App</p>
+                                <p className="text-xs text-blue-700 mt-0.5">On your phone or computer</p>
+                              </div>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                2
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-blue-900">Search for Bot</p>
+                                <p className="text-xs text-blue-700 mt-0.5">
+                                  Type: <code className="bg-blue-100 px-1.5 py-0.5 rounded">@userinfobot</code>
+                                </p>
+                              </div>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                3
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-blue-900">Start the Bot</p>
+                                <p className="text-xs text-blue-700 mt-0.5">
+                                  Send: <code className="bg-blue-100 px-1.5 py-0.5 rounded">/start</code>
+                                </p>
+                              </div>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                4
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-blue-900">Copy Your ID</p>
+                                <p className="text-xs text-blue-700 mt-0.5">
+                                  Bot will reply with your ID number (e.g., 123456789)
+                                </p>
+                              </div>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                ✓
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-green-900">Paste Above & Save!</p>
+                                <p className="text-xs text-green-700 mt-0.5">
+                                  You'll get instant notifications for every new lead
+                                </p>
+                              </div>
+                            </li>
+                          </ol>
+                          <div className="mt-3 p-2 bg-blue-100 rounded border border-blue-300">
+                            <p className="text-xs text-blue-800">
+                              <strong>💡 Tip:</strong> Takes only 2 minutes! Don't have Telegram? 
+                              <a href="https://telegram.org" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                                Download it free
+                              </a>
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="flex gap-3">

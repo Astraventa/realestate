@@ -30,6 +30,10 @@ export async function POST(request: NextRequest) {
     // Log the lead data
     console.log('New Lead Received:', leadWithTimestamp)
 
+    // Get agent's Telegram Chat ID from request headers (set by frontend)
+    const agentTelegramChatId = request.headers.get('x-agent-telegram-chat-id')
+    const agentName = request.headers.get('x-agent-name')
+
     // Save to Google Sheets (if configured)
     let sheetsSaved = false
     try {
@@ -44,18 +48,32 @@ export async function POST(request: NextRequest) {
     // Send Telegram notification (INSTANT - NEW!)
     let telegramSent = false
     try {
-      // Check if this is a high-value lead (budget > 1 Crore)
-      const budgetValue = parseBudget(leadData.budget)
-      const isHighValue = budgetValue && budgetValue >= 10000000 // 1 Crore
+      // Only send if agent provided their Telegram Chat ID
+      if (agentTelegramChatId) {
+        // Check if this is a high-value lead (budget > 1 Crore)
+        const budgetValue = parseBudget(leadData.budget)
+        const isHighValue = budgetValue && budgetValue >= 10000000 // 1 Crore
 
-      if (isHighValue) {
-        // Send priority alert for hot leads
-        telegramSent = await sendPriorityTelegramAlert(leadWithTimestamp, 'HOT')
-        console.log('🔥 Hot lead - Priority Telegram alert sent')
+        // Use agent's chat ID instead of environment variable
+        const originalChatId = process.env.TELEGRAM_CHAT_ID
+        process.env.TELEGRAM_CHAT_ID = agentTelegramChatId
+
+        if (isHighValue) {
+          // Send priority alert for hot leads
+          telegramSent = await sendPriorityTelegramAlert(leadWithTimestamp, 'HOT')
+          console.log(`🔥 Hot lead - Priority Telegram alert sent to agent: ${agentName || 'Unknown'}`)
+        } else {
+          // Send normal notification
+          telegramSent = await sendTelegramNotification(leadWithTimestamp)
+          console.log(`✅ Telegram notification sent to agent: ${agentName || 'Unknown'}`)
+        }
+
+        // Restore original chat ID
+        if (originalChatId) {
+          process.env.TELEGRAM_CHAT_ID = originalChatId
+        }
       } else {
-        // Send normal notification
-        telegramSent = await sendTelegramNotification(leadWithTimestamp)
-        console.log('✅ Telegram notification sent')
+        console.log('⚠️ Agent Telegram not configured - skipping notification')
       }
     } catch (telegramError) {
       console.warn('⚠️ Telegram notification failed (continuing anyway):', telegramError)

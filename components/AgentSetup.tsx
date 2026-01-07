@@ -5,10 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, MessageCircle, CheckCircle } from 'lucide-react'
 
 const STORAGE_KEY = 'agent_whatsapp_number'
+const TELEGRAM_STORAGE_KEY = 'agent_telegram_chat_id'
+const AGENT_NAME_KEY = 'agent_name'
 
 export default function AgentSetup() {
   const [showModal, setShowModal] = useState(false)
   const [whatsapp, setWhatsapp] = useState('')
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [agentName, setAgentName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isConfigured, setIsConfigured] = useState(false)
 
@@ -28,13 +32,20 @@ export default function AgentSetup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!whatsapp.trim()) return
+    if (!whatsapp.trim() || !agentName.trim()) return
 
     setIsSubmitting(true)
     
     // Save to localStorage
     const cleanNumber = whatsapp.replace(/[^\d+]/g, '')
     localStorage.setItem(STORAGE_KEY, cleanNumber)
+    localStorage.setItem(AGENT_NAME_KEY, agentName.trim())
+    
+    // Save Telegram if provided
+    if (telegramChatId.trim()) {
+      const cleanTelegramId = telegramChatId.trim()
+      localStorage.setItem(TELEGRAM_STORAGE_KEY, cleanTelegramId)
+    }
     
     // Update state
     setIsConfigured(true)
@@ -48,8 +59,14 @@ export default function AgentSetup() {
   }
 
   const handleChange = () => {
-    // Allow agent to change number
-    localStorage.removeItem(STORAGE_KEY)
+    // Allow agent to change info
+    const savedWhatsapp = localStorage.getItem(STORAGE_KEY)
+    const savedTelegram = localStorage.getItem(TELEGRAM_STORAGE_KEY)
+    const savedName = localStorage.getItem(AGENT_NAME_KEY)
+    
+    setWhatsapp(savedWhatsapp || '')
+    setTelegramChatId(savedTelegram || '')
+    setAgentName(savedName || '')
     setIsConfigured(false)
     setShowModal(true)
   }
@@ -75,7 +92,7 @@ export default function AgentSetup() {
           className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors text-sm font-medium"
         >
           <MessageCircle className="w-4 h-4" />
-          Change Agent Number
+          Change Agent Settings
         </motion.button>
       )}
 
@@ -124,10 +141,28 @@ export default function AgentSetup() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label
+                      htmlFor="agent-name"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Your Name / Business Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="agent-name"
+                      value={agentName}
+                      onChange={(e) => setAgentName(e.target.value)}
+                      placeholder="Ahmed Properties"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
                       htmlFor="agent-whatsapp"
                       className="block text-sm font-medium text-gray-700 mb-2"
                     >
-                      Your WhatsApp Number
+                      Your WhatsApp Number *
                     </label>
                     <input
                       type="tel"
@@ -138,10 +173,36 @@ export default function AgentSetup() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />
-                    <p className="mt-2 text-xs text-gray-500">
-                      Enter your WhatsApp number to receive lead notifications.
-                      Include country code (e.g., +92 for Pakistan).
+                    <p className="mt-1 text-xs text-gray-500">
+                      Include country code (e.g., +92 for Pakistan)
                     </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="agent-telegram"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Telegram Chat ID (Optional - for instant notifications)
+                    </label>
+                    <input
+                      type="text"
+                      id="agent-telegram"
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      placeholder="123456789"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-800">
+                        <strong>How to get your Chat ID:</strong>
+                      </p>
+                      <ol className="mt-1 text-xs text-blue-700 space-y-1 ml-4 list-decimal">
+                        <li>Open Telegram and search: <code className="bg-blue-100 px-1 rounded">@userinfobot</code></li>
+                        <li>Send: <code className="bg-blue-100 px-1 rounded">/start</code></li>
+                        <li>Copy your ID number and paste above</li>
+                      </ol>
+                    </div>
                   </div>
 
                   <div className="flex gap-3">
@@ -188,5 +249,17 @@ export default function AgentSetup() {
 export function getAgentWhatsAppNumber(): string | null {
   if (typeof window === 'undefined') return null
   return localStorage.getItem(STORAGE_KEY)
+}
+
+// Export function to get agent Telegram Chat ID
+export function getAgentTelegramChatId(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TELEGRAM_STORAGE_KEY)
+}
+
+// Export function to get agent name
+export function getAgentName(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(AGENT_NAME_KEY)
 }
 

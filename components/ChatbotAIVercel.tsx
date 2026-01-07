@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import propertiesData from '@/data/properties.json'
 import { agentConfig } from '@/config/agent'
 import { generateWhatsAppLinkForAgent, generateClientContactLink } from '@/lib/whatsapp'
-import { getAgentWhatsAppNumber } from './AgentSetup'
+import { getAgentWhatsAppNumber, getAgentTelegramChatId, getAgentName } from './AgentSetup'
 
 interface Message {
   id: string
@@ -204,9 +204,25 @@ export default function ChatbotAIVercel() {
 
   const handleLeadSubmission = async (finalLeadData: LeadData) => {
     try {
+      // Get agent info from localStorage
+      const agentTelegramChatId = getAgentTelegramChatId()
+      const agentName = getAgentName()
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+
+      // Add agent info to headers if available
+      if (agentTelegramChatId) {
+        headers['x-agent-telegram-chat-id'] = agentTelegramChatId
+      }
+      if (agentName) {
+        headers['x-agent-name'] = agentName
+      }
+
       const response = await fetch('/api/leads', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(finalLeadData),
       })
 

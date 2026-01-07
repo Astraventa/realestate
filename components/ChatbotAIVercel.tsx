@@ -1,13 +1,19 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useChat } from 'ai/react'
 import { Send, Bot, User, Loader2, ExternalLink, MessageCircle, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import propertiesData from '@/data/properties.json'
 import { agentConfig } from '@/config/agent'
 import { generateWhatsAppLinkForAgent, generateClientContactLink } from '@/lib/whatsapp'
 import { getAgentWhatsAppNumber } from './AgentSetup'
+
+interface Message {
+  id: string
+  text: string
+  sender: 'bot' | 'user'
+  timestamp: Date
+}
 
 interface LeadData {
   name?: string
@@ -19,30 +25,21 @@ interface LeadData {
 }
 
 export default function ChatbotAIVercel() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      text: "Hello! 👋 I'm your AI property assistant. I can help you find the perfect property. Let's start - what's your name?",
+      sender: 'bot',
+      timestamp: new Date(),
+    },
+  ])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const [leadData, setLeadData] = useState<LeadData>({})
   const [showActionButtons, setShowActionButtons] = useState(false)
   const [submittedLeadData, setSubmittedLeadData] = useState<LeadData>({})
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Vercel AI SDK hook - handles streaming, state, etc.
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
-    api: '/api/chat-vercel',
-    body: {
-      leadData,
-    },
-    initialMessages: [
-      {
-        id: '1',
-        role: 'assistant',
-        content: "Hello! 👋 I'm your AI property assistant powered by advanced AI. I can help you find the perfect property. Let's start - what's your name?",
-      },
-    ],
-    onFinish: (message) => {
-      // After AI responds, check if we need to extract lead data
-      extractLeadDataFromConversation()
-    },
-  })
 
   const questions = [
     { key: 'name', text: "What's your name?", placeholder: 'Enter your name' },
@@ -116,39 +113,93 @@ export default function ChatbotAIVercel() {
     return value
   }
 
-  // Extract lead data from conversation
-  const extractLeadDataFromConversation = () => {
-    const userMessages = messages.filter(m => m.role === 'user')
-    const newLeadData: LeadData = { ...leadData }
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return
 
-    // Simple extraction logic (AI will handle better in production)
-    userMessages.forEach((msg, idx) => {
-      const text = msg.content.trim()
-      
-      if (idx === 0 && !newLeadData.name) {
-        newLeadData.name = text
-      } else if (idx === 1 && !newLeadData.budget && (text.includes('lac') || text.includes('crore'))) {
-        newLeadData.budget = text
-      } else if (idx === 2 && !newLeadData.area) {
-        newLeadData.area = text
-      } else if (idx === 3 && !newLeadData.propertyType) {
-        newLeadData.propertyType = normalizeInput('propertyType', text)
-      } else if (idx === 4 && !newLeadData.status) {
-        newLeadData.status = normalizeInput('status', text)
-      } else if (idx === 5 && !newLeadData.whatsapp && text.includes('92')) {
-        newLeadData.whatsapp = text
-      }
-    })
-
-    setLeadData(newLeadData)
-
-    // Check if all data collected
-    const requiredFields = ['name', 'budget', 'area', 'propertyType', 'status', 'whatsapp']
-    const allCollected = requiredFields.every(field => newLeadData[field as keyof LeadData])
-
-    if (allCollected && !showActionButtons) {
-      handleLeadSubmission(newLeadData)
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: input,
+      sender: 'user',
+      timestamp: new Date(),
     }
+
+    setMessages((prev) => [...prev, userMessage])
+    const currentInput = input
+    setInput('')
+    setIsLoading(true)
+
+    // Update lead data
+    const questionKey = questions[currentQuestion]?.key
+    if (questionKey) {
+      const normalizedValue = normalizeInput(questionKey, currentInput)
+      setLeadData((prev) => {
+        const updated = { ...prev, [questionKey]: normalizedValue }
+        
+        // Check if all data collected
+        const requiredFields = ['name', 'budget', 'area', 'propertyType', 'status', 'whatsapp']
+        const allCollected = requiredFields.every(field => updated[field as keyof LeadData])
+        
+        if (allCollected && !showActionButtons) {
+          setTimeout(() => handleLeadSubmission(updated), 1000)
+        }
+        
+        return updated
+      })
+    }
+
+    try {
+      // Call Vercel AI endpoint
+      const response = await fetch('/api/chat-vercel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            sender: m.sender,
+            text: m.text,
+          })),
+          leadData: leadData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('AI request failed')
+      }
+
+      // Read response as text (simplified - not streaming for now)
+      const data = await response.text()
+      
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data || (currentQuestion < questions.length - 1 ? questions[currentQuestion + 1].text : "Thank you!"),
+        sender: 'bot',
+        timestamp: new Date(),
+      }
+      
+      setMessages((prev) => [...prev, botMessage])
+
+      // Move to next question
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion((prev) => prev + 1)
+      }
+    } catch (error) {
+      console.error('Error getting AI response:', error)
+      // Fallback to next question
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: currentQuestion < questions.length - 1 
+          ? questions[currentQuestion + 1].text
+          : "Thank you for providing your information! I'm sending your details to our agent.",
+        sender: 'bot',
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, botMessage])
+      
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion((prev) => prev + 1)
+      }
+    }
+
+    setIsLoading(false)
   }
 
   const handleLeadSubmission = async (finalLeadData: LeadData) => {
@@ -162,6 +213,14 @@ export default function ChatbotAIVercel() {
       if (response.ok) {
         setSubmittedLeadData(finalLeadData)
         setShowActionButtons(true)
+        
+        const successMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          text: '✅ Lead sent successfully! Our agent will contact you within 24 hours.',
+          sender: 'bot',
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, successMessage])
       }
     } catch (error) {
       console.error('Error submitting lead:', error)
@@ -171,7 +230,7 @@ export default function ChatbotAIVercel() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e as any)
+      handleSend()
     }
   }
 
@@ -187,7 +246,7 @@ export default function ChatbotAIVercel() {
             Try Our AI Assistant
           </h2>
           <p className="text-xl text-gray-600">
-            Real AI-powered conversations • Streaming responses • Smart property matching
+            Real AI-powered conversations • Smart property matching
           </p>
         </div>
 
@@ -200,7 +259,7 @@ export default function ChatbotAIVercel() {
               <div>
                 <h3 className="text-white font-semibold">AI Property Assistant</h3>
                 <p className="text-blue-100 text-sm">
-                  Online • Powered by GPT-4 & Claude
+                  Online • Ready to help
                 </p>
               </div>
             </div>
@@ -215,23 +274,124 @@ export default function ChatbotAIVercel() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   className={`flex gap-3 ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                    message.sender === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  {message.role === 'assistant' && (
+                  {message.sender === 'bot' && (
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                       <Bot className="w-5 h-5 text-blue-600" />
                     </div>
                   )}
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      message.role === 'user'
+                      message.sender === 'user'
                         ? 'bg-blue-600 text-white'
                         : 'bg-white text-gray-800 shadow-sm'
                     }`}
                   >
-                    <p className="whitespace-pre-line text-sm">{message.content}</p>
+                    <p className="whitespace-pre-line text-sm">{message.text}</p>
                   </div>
+                  {message.sender === 'user' && (
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {isLoading && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="bg-white rounded-2xl px-4 py-2 shadow-sm">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+            
+            {showActionButtons && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-blue-50 border-t border-blue-100"
+              >
+                <p className="text-sm font-semibold text-gray-700 mb-3 text-center">
+                  ✅ Lead captured! Agent actions:
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <a
+                    href={agentConfig.sheetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View Google Sheet
+                  </a>
+                  {(() => {
+                    const agentWhatsApp = getAgentWhatsAppNumber()
+                    return agentWhatsApp ? (
+                      <a
+                        href={generateWhatsAppLinkForAgent(agentWhatsApp, submittedLeadData)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp Notification
+                      </a>
+                    ) : null
+                  })()}
+                  {submittedLeadData.whatsapp && (
+                    <a
+                      href={generateClientContactLink(submittedLeadData.whatsapp)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Contact Client
+                    </a>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          <div className="p-4 bg-white border-t">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={
+                  questions[currentQuestion]?.placeholder || 'Type your message...'
+                }
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              ⚡ Powered by Vercel AI
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
                   {message.role === 'user' && (
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <User className="w-5 h-5 text-white" />

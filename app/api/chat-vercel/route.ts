@@ -51,7 +51,6 @@ export async function POST(req: Request) {
     const systemPrompt = createSystemPrompt(propertiesData, leadData || {})
 
     // Try Vercel AI with multiple model fallback
-    // Priority: GPT-4o-mini (cheapest) → GPT-3.5 → Claude Haiku
     let result
 
     try {
@@ -64,7 +63,6 @@ export async function POST(req: Request) {
           content: msg.text,
         })),
         temperature: 0.7,
-        maxTokens: 500,
       })
     } catch (error) {
       console.warn('GPT-4o-mini failed, trying Claude Haiku:', error)
@@ -79,7 +77,6 @@ export async function POST(req: Request) {
             content: msg.text,
           })),
           temperature: 0.7,
-          maxTokens: 500,
         })
       } catch (claudeError) {
         console.error('All AI models failed:', claudeError)
@@ -88,7 +85,7 @@ export async function POST(req: Request) {
     }
 
     // Return streaming response
-    return result.toAIStreamResponse()
+    return result.toTextStreamResponse()
   } catch (error: any) {
     console.error('Chat API error:', error)
     

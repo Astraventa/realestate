@@ -20,17 +20,25 @@ export default function AgentSetup() {
   const [showTelegramGuide, setShowTelegramGuide] = useState(false)
 
   useEffect(() => {
-    // Check if agent has already configured
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      setIsConfigured(true)
-    } else {
-      // Show modal after 1 second (gives page time to load)
-      const timer = setTimeout(() => {
-        setShowModal(true)
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
+    // Wait for page to fully load before checking configuration
+    const timer = setTimeout(() => {
+      // Check if agent has already configured
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        setIsConfigured(true)
+      } else {
+        // Show modal after ensuring page is loaded
+        const modalTimer = setTimeout(() => {
+          setShowModal(true)
+        }, 2000) // Increased delay to ensure smooth page load
+        
+        // Cleanup modal timer
+        return () => clearTimeout(modalTimer)
+      }
+    }, 500) // Initial delay to let page load
+    
+    // Cleanup main timer
+    return () => clearTimeout(timer)
   }, [])
 
   const handleSubmit = (e: React.FormEvent) => {

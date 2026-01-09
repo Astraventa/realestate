@@ -232,10 +232,18 @@ export default function Chatbot() {
   }
 
   const getRuleBasedResponse = (userInput: string): string => {
+    // Check if there are more questions to ask
     if (currentQuestion < questions.length - 1) {
-      // Ask next question
-      setCurrentQuestion((prev) => prev + 1)
-      return questions[currentQuestion + 1].text
+      // Determine the next question
+      const nextQuestionIndex = currentQuestion + 1
+      const nextQuestion = questions[nextQuestionIndex]
+      
+      // Update the question after a brief delay to ensure response is processed
+      setTimeout(() => {
+        setCurrentQuestion(nextQuestionIndex)
+      }, 100)
+      
+      return nextQuestion.text
     } else {
       // All questions answered - show property suggestions and lead capture
       const budget = leadData.budget || userInput
@@ -253,7 +261,13 @@ export default function Chatbot() {
             ? `   📐 ${prop.area}`
             : `   🏠 ${prop.bedrooms} Bed, ${prop.bathrooms} Bath\n   📐 ${prop.area}`
           
-          response += `${idx + 1}. ${prop.name}\n   💰 ${prop.price}\n   📍 ${prop.location}\n${propertyDetails}\n   ✅ ${prop.status}\n\n`
+          response += `${idx + 1}. ${prop.name}
+   💰 ${prop.price}
+   📍 ${prop.location}
+${propertyDetails}
+   ✅ ${prop.status}
+
+`
         })
         response +=
           'I\'m sending your details to our agent. You\'ll receive a WhatsApp message shortly! 📱'
@@ -344,6 +358,8 @@ export default function Chatbot() {
     } else {
       // Rule-based flow
       botResponse = getRuleBasedResponse(userInput)
+      // Extract data from user input for rule-based flow
+      extractDataFromResponse(userInput, botResponse)
     }
 
     const botMessage: Message = {

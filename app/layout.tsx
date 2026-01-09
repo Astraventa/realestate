@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     icon: '/favicon.png',
     apple: '/favicon.png',
   },
+  viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no',
 }
 
 export default function RootLayout({

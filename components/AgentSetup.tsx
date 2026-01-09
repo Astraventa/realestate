@@ -192,7 +192,7 @@ export default function AgentSetup() {
                       id="agent-whatsapp"
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="+923001234567"
+                      placeholder="+923267853405"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />

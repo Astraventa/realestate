@@ -5,7 +5,7 @@ import { Calendar, ArrowRight, MessageCircle } from 'lucide-react'
 
 export default function CTA() {
   // Your WhatsApp number
-  const whatsappNumber = '+923055255838'
+  const whatsappNumber = '+923267853405'
   
   // Pre-filled message for demo booking
   const demoMessage = `Hello! I'm interested in booking a free demo for the AI Property Sales Assistant.

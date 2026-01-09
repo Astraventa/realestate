@@ -5,8 +5,8 @@
 
 export const agentConfig = {
   // Agent's WhatsApp number (for notifications)
-  // Format: +923001234567 (with country code)
-  whatsapp: process.env.AGENT_WHATSAPP || '+923001234567',
+  // Format: +923267853405 (with country code)
+  whatsapp: process.env.AGENT_WHATSAPP || '+923267853405',
   
   // Google Sheet URL (for "View Sheet" button)
   // Use public sharing link format for better access

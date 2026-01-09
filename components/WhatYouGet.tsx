@@ -43,13 +43,13 @@ const features = [
     icon: BarChart3,
     title: 'Analytics Dashboard',
     description: 'Track leads, conversion rates, and performance metrics. See what\'s working.',
-    status: 'coming-soon',
+    status: 'included',
   },
   {
     icon: Mail,
     title: 'Email Notifications',
     description: 'Receive email alerts when new leads arrive. Never miss an opportunity.',
-    status: 'coming-soon',
+    status: 'included',
   },
   {
     icon: Settings,
@@ -191,7 +191,7 @@ export default function WhatYouGet() {
               </div>
             </div>
             <p className="mt-6 text-sm text-gray-600">
-              <span className="font-semibold">Coming Soon:</span> Analytics Dashboard, Email Notifications
+              All features are now included in the package!
             </p>
           </div>
         </motion.div>

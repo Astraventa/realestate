@@ -7,12 +7,14 @@ import { X, MessageCircle, CheckCircle, Send, Bell, Zap } from 'lucide-react'
 const STORAGE_KEY = 'agent_whatsapp_number'
 const TELEGRAM_STORAGE_KEY = 'agent_telegram_chat_id'
 const AGENT_NAME_KEY = 'agent_name'
+const AGENT_EMAIL_KEY = 'agent_email'
 
 export default function AgentSetup() {
   const [showModal, setShowModal] = useState(false)
   const [whatsapp, setWhatsapp] = useState('')
   const [telegramChatId, setTelegramChatId] = useState('')
   const [agentName, setAgentName] = useState('')
+  const [agentEmail, setAgentEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isConfigured, setIsConfigured] = useState(false)
   const [showTelegramGuide, setShowTelegramGuide] = useState(false)
@@ -41,6 +43,7 @@ export default function AgentSetup() {
     const cleanNumber = whatsapp.replace(/[^\d+]/g, '')
     localStorage.setItem(STORAGE_KEY, cleanNumber)
     localStorage.setItem(AGENT_NAME_KEY, agentName.trim())
+    localStorage.setItem(AGENT_EMAIL_KEY, agentEmail.trim())
     
     // Save Telegram if provided
     if (telegramChatId.trim()) {
@@ -64,10 +67,12 @@ export default function AgentSetup() {
     const savedWhatsapp = localStorage.getItem(STORAGE_KEY)
     const savedTelegram = localStorage.getItem(TELEGRAM_STORAGE_KEY)
     const savedName = localStorage.getItem(AGENT_NAME_KEY)
+    const savedEmail = localStorage.getItem(AGENT_EMAIL_KEY)
     
     setWhatsapp(savedWhatsapp || '')
     setTelegramChatId(savedTelegram || '')
     setAgentName(savedName || '')
+    setAgentEmail(savedEmail || '')
     setIsConfigured(false)
     setShowModal(true)
   }
@@ -155,6 +160,23 @@ export default function AgentSetup() {
                       placeholder="Ahmed Properties"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="agent-email"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Your Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      id="agent-email"
+                      value={agentEmail}
+                      onChange={(e) => setAgentEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
 
@@ -318,7 +340,7 @@ export default function AgentSetup() {
                       onClick={handleCancel}
                       className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                     >
-                      Skip (No WhatsApp)
+                      Cancel
                     </button>
                     <button
                       type="submit"
@@ -368,5 +390,11 @@ export function getAgentTelegramChatId(): string | null {
 export function getAgentName(): string | null {
   if (typeof window === 'undefined') return null
   return localStorage.getItem(AGENT_NAME_KEY)
+}
+
+// Export function to get agent email
+export function getAgentEmail(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(AGENT_EMAIL_KEY)
 }
 

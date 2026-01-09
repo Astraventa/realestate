@@ -42,6 +42,17 @@ When all data collected, format property suggestions like:
 Keep responses concise and conversational.`
 }
 
+// Simple fallback question flow
+function getNextQuestion(leadData: any): string {
+  if (!leadData.name) return "What's your name?"
+  if (!leadData.budget) return "What is your budget? (e.g., 50 Lac, 1 Crore)"
+  if (!leadData.area) return "Which area are you interested in?"
+  if (!leadData.propertyType) return "Are you looking for Commercial or Residential property?"
+  if (!leadData.status) return "Do you prefer Ready to Move or Under Construction?"
+  if (!leadData.whatsapp) return "What is your WhatsApp number?"
+  return "Thank you! I'm processing your request and our agent will contact you soon."
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, leadData } = await req.json()
@@ -51,7 +62,6 @@ export async function POST(req: Request) {
 
     // Try Vercel AI with OpenRouter fallback
     let result
-    let usedFallback = false
 
     try {
       // First try: OpenAI GPT-4o-mini (uses Vercel's FREE credits)
@@ -66,7 +76,6 @@ export async function POST(req: Request) {
       })
     } catch (error) {
       console.warn('Vercel AI failed, trying OpenRouter fallback:', error)
-      usedFallback = true
       
       try {
         // Fallback: OpenRouter with FREE models (meta-llama/llama-3.2-3b-instruct:free)
@@ -127,48 +136,4 @@ export async function POST(req: Request) {
       }
     )
   }
-}
-
-// Simple fallback question flow
-function getNextQuestion(leadData: any): string {
-  if (!leadData.name) return "What's your name?"
-  if (!leadData.budget) return "What is your budget? (e.g., 50 Lac, 1 Crore)"
-  if (!leadData.area) return "Which area are you interested in?"
-  if (!leadData.propertyType) return "Are you looking for Commercial or Residential property?"
-  if (!leadData.status) return "Do you prefer Ready to Move or Under Construction?"
-  if (!leadData.whatsapp) return "What is your WhatsApp number?"
-  return "Thank you! I'm processing your request and our agent will contact you soon."
-}
-          headers: { 'Content-Type': 'text/plain' },
-        })
-      }
-    }
-
-    // Return streaming response (Vercel AI)
-    return result.toTextStreamResponse()
-  } catch (error: any) {
-    console.error('Chat API error:', error)
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'Failed to get AI response',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
-  }
-}
-
-// Simple fallback question flow
-function getNextQuestion(leadData: any): string {
-  if (!leadData.name) return "What's your name?"
-  if (!leadData.budget) return "What is your budget? (e.g., 50 Lac, 1 Crore)"
-  if (!leadData.area) return "Which area are you interested in?"
-  if (!leadData.propertyType) return "Are you looking for Commercial or Residential property?"
-  if (!leadData.status) return "Do you prefer Ready to Move or Under Construction?"
-  if (!leadData.whatsapp) return "What is your WhatsApp number?"
-  return "Thank you! I'm processing your request and our agent will contact you soon."
 }

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import propertiesData from '@/data/properties.json'
 import { agentConfig } from '@/config/agent'
 import { generateWhatsAppLinkForAgent, generateClientContactLink } from '@/lib/whatsapp'
-import { getAgentWhatsAppNumber, getAgentTelegramChatId, getAgentName } from './AgentSetup'
+import { getAgentWhatsAppNumber, getAgentTelegramChatId, getAgentName, getAgentEmail } from './AgentSetup'
 
 interface Message {
   id: string
@@ -207,6 +207,7 @@ export default function ChatbotAIVercel() {
       // Get agent info from localStorage
       const agentTelegramChatId = getAgentTelegramChatId()
       const agentName = getAgentName()
+      const agentEmail = getAgentEmail()
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -218,6 +219,9 @@ export default function ChatbotAIVercel() {
       }
       if (agentName) {
         headers['x-agent-name'] = agentName
+      }
+      if (agentEmail) {
+        headers['x-agent-email'] = agentEmail
       }
 
       const response = await fetch('/api/leads', {

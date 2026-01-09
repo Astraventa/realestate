@@ -7,7 +7,7 @@ import { agentConfig } from '@/config/agent'
 // Helper function to parse budget string to number
 function parseBudget(budget?: string): number | null {
   if (!budget) return null
-  
+
   const clean = budget.toLowerCase().replace(/[^\d.]/g, '')
   const num = parseFloat(clean)
   if (isNaN(num)) return null
@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
     // Get agent's Telegram Chat ID from request headers (set by frontend)
     const agentTelegramChatId = request.headers.get('x-agent-telegram-chat-id')
     const agentName = request.headers.get('x-agent-name')
+    const agentEmail = request.headers.get('x-agent-email')
 
     // Save to Google Sheets (if configured)
     let sheetsSaved = false
     try {
-      sheetsSaved = await saveLeadToGoogleSheets(leadWithTimestamp)
+      sheetsSaved = await saveLeadToGoogleSheets({ ...leadWithTimestamp, email: agentEmail || '' })
       if (sheetsSaved) {
         console.log('✅ Lead saved to Google Sheets')
       }
@@ -113,4 +114,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

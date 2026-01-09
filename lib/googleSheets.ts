@@ -20,6 +20,7 @@ interface LeadData {
   propertyType?: string
   status?: string
   whatsapp?: string
+  email?: string
   timestamp?: string
 }
 
@@ -67,19 +68,20 @@ export async function saveLeadToGoogleSheets(leadData: LeadData): Promise<boolea
       leadData.propertyType || '',
       leadData.status || '',
       leadData.whatsapp || '',
+      leadData.email || '',
     ]
 
     // Check if headers exist, if not add them
     const headerCheck = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A1:G1',
+      range: 'Sheet1!A1:H1',
     })
 
     // If no headers, add them first
     if (!headerCheck.data.values || headerCheck.data.values.length === 0) {
       await sheets.spreadsheets.values.update({
         spreadsheetId: sheetId,
-        range: 'Sheet1!A1:G1',
+        range: 'Sheet1!A1:H1',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [
@@ -91,6 +93,7 @@ export async function saveLeadToGoogleSheets(leadData: LeadData): Promise<boolea
               'Property Type',
               'Status',
               'WhatsApp',
+              'Email',
             ],
           ],
         },
@@ -100,7 +103,7 @@ export async function saveLeadToGoogleSheets(leadData: LeadData): Promise<boolea
     // Append to sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A:G',
+      range: 'Sheet1!A:H',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [row],
@@ -156,7 +159,7 @@ export async function initializeGoogleSheet(): Promise<boolean> {
     // Set headers
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A1:G1',
+      range: 'Sheet1!A1:H1',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [
@@ -168,6 +171,7 @@ export async function initializeGoogleSheet(): Promise<boolean> {
             'Property Type',
             'Status',
             'WhatsApp',
+            'Email',
           ],
         ],
       },
@@ -180,4 +184,3 @@ export async function initializeGoogleSheet(): Promise<boolean> {
     return false
   }
 }
-

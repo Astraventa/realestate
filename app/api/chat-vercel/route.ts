@@ -1,6 +1,5 @@
 import { streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { anthropic } from '@ai-sdk/anthropic'
 import propertiesData from '@/data/properties.json'
 
 // Runtime edge for better performance
@@ -50,11 +49,12 @@ export async function POST(req: Request) {
     // Create system prompt with property context
     const systemPrompt = createSystemPrompt(propertiesData, leadData || {})
 
-    // Try Vercel AI with multiple model fallback
+    // Try Vercel AI with OpenRouter fallback
     let result
+    let usedFallback = false
 
     try {
-      // First try: OpenAI GPT-4o-mini (most cost-effective, uses Vercel free credits)
+      // First try: OpenAI GPT-4o-mini (uses Vercel's FREE credits)
       result = await streamText({
         model: openai('gpt-4o-mini'),
         system: systemPrompt,
@@ -65,26 +65,53 @@ export async function POST(req: Request) {
         temperature: 0.7,
       })
     } catch (error) {
-      console.warn('GPT-4o-mini failed, trying Claude Haiku:', error)
+      console.warn('Vercel AI failed, trying OpenRouter fallback:', error)
+      usedFallback = true
       
       try {
-        // Fallback: Anthropic Claude Haiku (also uses free credits)
-        result = await streamText({
-          model: anthropic('claude-3-haiku-20240307'),
-          system: systemPrompt,
-          messages: messages.map((msg: any) => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text,
-          })),
-          temperature: 0.7,
+        // Fallback: OpenRouter with FREE models (meta-llama/llama-3.2-3b-instruct:free)
+        const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || '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'}`,
+            'HTTP-Referer': process.env.VERCEL_URL || 'https://astraventa.com',
+            'X-Title': 'Astraventa Real Estate AI',
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-3.2-3b-instruct:free', // FREE model!
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...messages.map((msg: any) => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.text,
+              })),
+            ],
+            temperature: 0.7,
+          }),
         })
-      } catch (claudeError) {
-        console.error('All AI models failed:', claudeError)
-        throw new Error('AI service temporarily unavailable')
+
+        if (!openrouterResponse.ok) {
+          throw new Error(`OpenRouter failed: ${openrouterResponse.status}`)
+        }
+
+        const data = await openrouterResponse.json()
+        const responseText = data.choices?.[0]?.message?.content || 'I apologize, but I encountered an error. Please try again.'
+        
+        return new Response(responseText, {
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      } catch (openrouterError) {
+        console.error('OpenRouter fallback also failed:', openrouterError)
+        // Ultimate fallback: Simple question flow
+        const nextQuestion = getNextQuestion(leadData)
+        return new Response(nextQuestion, {
+          headers: { 'Content-Type': 'text/plain' },
+        })
       }
     }
 
-    // Return streaming response
+    // Return streaming response (Vercel AI)
     return result.toTextStreamResponse()
   } catch (error: any) {
     console.error('Chat API error:', error)
@@ -100,4 +127,48 @@ export async function POST(req: Request) {
       }
     )
   }
+}
+
+// Simple fallback question flow
+function getNextQuestion(leadData: any): string {
+  if (!leadData.name) return "What's your name?"
+  if (!leadData.budget) return "What is your budget? (e.g., 50 Lac, 1 Crore)"
+  if (!leadData.area) return "Which area are you interested in?"
+  if (!leadData.propertyType) return "Are you looking for Commercial or Residential property?"
+  if (!leadData.status) return "Do you prefer Ready to Move or Under Construction?"
+  if (!leadData.whatsapp) return "What is your WhatsApp number?"
+  return "Thank you! I'm processing your request and our agent will contact you soon."
+}
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      }
+    }
+
+    // Return streaming response (Vercel AI)
+    return result.toTextStreamResponse()
+  } catch (error: any) {
+    console.error('Chat API error:', error)
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message || 'Failed to get AI response',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  }
+}
+
+// Simple fallback question flow
+function getNextQuestion(leadData: any): string {
+  if (!leadData.name) return "What's your name?"
+  if (!leadData.budget) return "What is your budget? (e.g., 50 Lac, 1 Crore)"
+  if (!leadData.area) return "Which area are you interested in?"
+  if (!leadData.propertyType) return "Are you looking for Commercial or Residential property?"
+  if (!leadData.status) return "Do you prefer Ready to Move or Under Construction?"
+  if (!leadData.whatsapp) return "What is your WhatsApp number?"
+  return "Thank you! I'm processing your request and our agent will contact you soon."
 }

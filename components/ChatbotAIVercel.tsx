@@ -256,7 +256,7 @@ export default function ChatbotAIVercel() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium mb-4">
             <Sparkles className="w-4 h-4" />
-            <span>Powered by Vercel AI (FREE Tier)</span>
+            <span>Powered by Astraventa AI</span>
           </div>
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
             Try Our AI Assistant
@@ -400,7 +400,7 @@ export default function ChatbotAIVercel() {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              ⚡ Powered by Vercel AI
+              ⚡ Powered by Astraventa AI
             </p>
           </div>
         </div>
